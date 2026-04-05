@@ -27,9 +27,13 @@ public class NoteService {
     private final UserRepository userRepository;
     private final TagRepository tagRepository;
 
+    /**
+     * Lists notes for the user. Text search runs in memory on decrypted content — DB stores ciphertext, so SQL LIKE
+     * on {@code content} is not used.
+     */
     public List<Note> findAllForUser(Long userId, String tagFilter, String searchQuery) {
         User owner = resolveOwner(userId);
-        Optional<String> searchPattern = buildSearchPattern(searchQuery);
+        Optional<String> searchTerm = normalizeSearchTerm(searchQuery);
         boolean hasTag = hasTagFilter(tagFilter);
         String normalizedTag = hasTag ? normalizeTag(tagFilter) : "";
 
@@ -37,19 +41,19 @@ public class NoteService {
             hasTag = false;
         }
 
-        if (searchPattern.isEmpty()) {
-            if (!hasTag) {
-                return noteRepository.findAllByOwnerOrderByUpdatedAtDesc(owner);
-            }
-            return noteRepository.findAllByOwnerAndTagNameOrderByUpdatedAtDesc(owner, normalizedTag);
+        List<Note> notes;
+        if (!hasTag) {
+            notes = noteRepository.findAllByOwnerOrderByUpdatedAtDesc(owner);
+        } else {
+            notes = noteRepository.findAllByOwnerAndTagNameOrderByUpdatedAtDesc(owner, normalizedTag);
         }
 
-        String pattern = searchPattern.get();
-        if (!hasTag) {
-            return noteRepository.findAllByOwnerAndTextSearchOrderByUpdatedAtDesc(owner, pattern);
+        if (searchTerm.isEmpty()) {
+            return notes;
         }
-        return noteRepository.findAllByOwnerTagAndTextSearchOrderByUpdatedAtDesc(
-                owner, normalizedTag, pattern);
+
+        String term = searchTerm.get();
+        return notes.stream().filter(n -> matchesTextSearch(n, term)).toList();
     }
 
     @Transactional
@@ -112,10 +116,7 @@ public class NoteService {
         return tagFilter != null && !tagFilter.isBlank();
     }
 
-    /**
-     * Case-insensitive substring match; strips LIKE wildcards from input so {@code %} / {@code _} are literal-safe.
-     */
-    private static Optional<String> buildSearchPattern(String raw) {
+    private static Optional<String> normalizeSearchTerm(String raw) {
         if (raw == null || raw.isBlank()) {
             return Optional.empty();
         }
@@ -123,7 +124,13 @@ public class NoteService {
         if (stripped.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of("%" + stripped.toLowerCase(Locale.ROOT) + "%");
+        return Optional.of(stripped.toLowerCase(Locale.ROOT));
+    }
+
+    private static boolean matchesTextSearch(Note note, String termLower) {
+        String title = note.getTitle().toLowerCase(Locale.ROOT);
+        String content = note.getContent().toLowerCase(Locale.ROOT);
+        return title.contains(termLower) || content.contains(termLower);
     }
 
     private User resolveOwner(Long userId) {

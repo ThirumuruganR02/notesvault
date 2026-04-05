@@ -1,7 +1,9 @@
 package com.notesvault.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.notesvault.model.converter.EncryptedNoteContentConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -40,6 +42,7 @@ public class Note {
     @Column(nullable = false, length = 200)
     private String title;
 
+    @Convert(converter = EncryptedNoteContentConverter.class)
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 

@@ -26,29 +26,6 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
     List<Note> findAllByOwnerAndTagNameOrderByUpdatedAtDesc(
             @Param("owner") User owner, @Param("tagName") String tagName);
 
-    @Query(
-            """
-                    select distinct n from Note n left join fetch n.tags
-                    where n.owner = :owner
-                    and (lower(n.title) like :pattern or lower(n.content) like :pattern)
-                    order by n.updatedAt desc
-                    """)
-    List<Note> findAllByOwnerAndTextSearchOrderByUpdatedAtDesc(
-            @Param("owner") User owner, @Param("pattern") String pattern);
-
-    @Query(
-            """
-                    select distinct n from Note n
-                    inner join n.tags filterTag
-                    left join fetch n.tags
-                    where n.owner = :owner
-                    and filterTag.name = :tagName
-                    and (lower(n.title) like :pattern or lower(n.content) like :pattern)
-                    order by n.updatedAt desc
-                    """)
-    List<Note> findAllByOwnerTagAndTextSearchOrderByUpdatedAtDesc(
-            @Param("owner") User owner, @Param("tagName") String tagName, @Param("pattern") String pattern);
-
     @Query("select distinct n from Note n left join fetch n.tags where n.id = :id and n.owner = :owner")
     Optional<Note> findByIdAndOwner(@Param("id") Long id, @Param("owner") User owner);
 
