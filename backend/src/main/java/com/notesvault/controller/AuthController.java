@@ -4,6 +4,7 @@ import com.notesvault.dto.AuthResponse;
 import com.notesvault.dto.LoginRequest;
 import com.notesvault.dto.RegisterRequest;
 import com.notesvault.service.AuthService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "Authentication")
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor

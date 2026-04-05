@@ -1,9 +1,13 @@
 package com.notesvault.controller;
 
+import com.notesvault.config.OpenApiConfig;
 import com.notesvault.dto.NoteRequest;
 import com.notesvault.model.Note;
 import com.notesvault.security.UserPrincipal;
 import com.notesvault.service.NoteService;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,6 +25,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+@Tag(name = "Notes")
+@SecurityRequirement(name = OpenApiConfig.BEARER_JWT)
 @RestController
 @RequestMapping("/notes")
 @RequiredArgsConstructor
@@ -30,7 +36,7 @@ public class NoteController {
 
     @GetMapping
     public List<Note> list(
-            @AuthenticationPrincipal UserPrincipal user,
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal user,
             @RequestParam(name = "tag", required = false) String tag,
             @RequestParam(name = "search", required = false) String search) {
         return noteService.findAllForUser(user.id(), tag, search);
@@ -38,7 +44,7 @@ public class NoteController {
 
     @PostMapping
     public ResponseEntity<Note> create(
-            @AuthenticationPrincipal UserPrincipal user,
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal user,
             @Valid @RequestBody NoteRequest request) {
         Note created = noteService.create(user.id(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
@@ -46,7 +52,7 @@ public class NoteController {
 
     @PutMapping("/{id}")
     public ResponseEntity<Note> update(
-            @AuthenticationPrincipal UserPrincipal user,
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal user,
             @PathVariable Long id,
             @Valid @RequestBody NoteRequest request) {
         return noteService.update(user.id(), id, request)
@@ -56,7 +62,7 @@ public class NoteController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
-            @AuthenticationPrincipal UserPrincipal user,
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal user,
             @PathVariable Long id) {
         if (!noteService.deleteForUser(user.id(), id)) {
             return ResponseEntity.notFound().build();
