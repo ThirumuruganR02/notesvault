@@ -8,6 +8,7 @@ import com.notesvault.repository.NoteRepository;
 import com.notesvault.repository.TagRepository;
 import com.notesvault.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NoteService {
@@ -48,12 +50,18 @@ public class NoteService {
             notes = noteRepository.findAllByOwnerAndTagNameOrderByUpdatedAtDesc(owner, normalizedTag);
         }
 
-        if (searchTerm.isEmpty()) {
-            return notes;
+        if (searchTerm.isPresent()) {
+            String term = searchTerm.get();
+            notes = notes.stream().filter(n -> matchesTextSearch(n, term)).toList();
         }
 
-        String term = searchTerm.get();
-        return notes.stream().filter(n -> matchesTextSearch(n, term)).toList();
+        log.info(
+                "Notes listed: userId={}, count={}, tagFilterActive={}, textSearchActive={}",
+                userId,
+                notes.size(),
+                hasTag,
+                searchTerm.isPresent());
+        return notes;
     }
 
     @Transactional
@@ -65,27 +73,49 @@ public class NoteService {
                 .owner(owner)
                 .tags(resolveTags(owner, request.tags()))
                 .build();
-        return noteRepository.save(note);
+        Note saved = noteRepository.save(note);
+        log.info(
+                "Note created: userId={}, noteId={}, titleLength={}, tagCount={}",
+                userId,
+                saved.getId(),
+                saved.getTitle().length(),
+                saved.getTags().size());
+        return saved;
     }
 
     @Transactional
     public Optional<Note> update(Long userId, Long noteId, NoteRequest request) {
         User owner = resolveOwner(userId);
-        return noteRepository.findByIdAndOwner(noteId, owner).map(note -> {
-            note.setTitle(request.title().trim());
-            note.setContent(request.content());
-            note.setTags(resolveTags(owner, request.tags()));
-            return noteRepository.save(note);
-        });
+        Optional<Note> updated =
+                noteRepository.findByIdAndOwner(noteId, owner).map(note -> {
+                    note.setTitle(request.title().trim());
+                    note.setContent(request.content());
+                    note.setTags(resolveTags(owner, request.tags()));
+                    return noteRepository.save(note);
+                });
+        if (updated.isPresent()) {
+            Note n = updated.get();
+            log.info(
+                    "Note updated: userId={}, noteId={}, titleLength={}, tagCount={}",
+                    userId,
+                    n.getId(),
+                    n.getTitle().length(),
+                    n.getTags().size());
+        } else {
+            log.warn("Note update skipped (not found): userId={}, noteId={}", userId, noteId);
+        }
+        return updated;
     }
 
     @Transactional
     public boolean deleteForUser(Long userId, Long noteId) {
         User owner = resolveOwner(userId);
         if (!noteRepository.existsByIdAndOwner(noteId, owner)) {
+            log.warn("Note delete skipped (not found): userId={}, noteId={}", userId, noteId);
             return false;
         }
         noteRepository.deleteById(noteId);
+        log.info("Note deleted: userId={}, noteId={}", userId, noteId);
         return true;
     }
 
