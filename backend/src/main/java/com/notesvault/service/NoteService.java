@@ -1,5 +1,6 @@
 package com.notesvault.service;
 
+import com.notesvault.dto.NoteRequest;
 import com.notesvault.model.Note;
 import com.notesvault.repository.NoteRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +17,7 @@ public class NoteService {
     private final NoteRepository noteRepository;
 
     public List<Note> findAll() {
-        return noteRepository.findAll();
+        return noteRepository.findAllByOrderByUpdatedAtDesc();
     }
 
     public Optional<Note> findById(Long id) {
@@ -24,25 +25,29 @@ public class NoteService {
     }
 
     @Transactional
-    public Note create(String title, String content) {
+    public Note create(NoteRequest request) {
         Note note = Note.builder()
-                .title(title)
-                .content(content)
+                .title(request.title().trim())
+                .content(request.content())
                 .build();
         return noteRepository.save(note);
     }
 
     @Transactional
-    public Optional<Note> update(Long id, String title, String content) {
+    public Optional<Note> update(Long id, NoteRequest request) {
         return noteRepository.findById(id).map(note -> {
-            note.setTitle(title);
-            note.setContent(content);
+            note.setTitle(request.title().trim());
+            note.setContent(request.content());
             return noteRepository.save(note);
         });
     }
 
     @Transactional
-    public void deleteById(Long id) {
+    public boolean deleteById(Long id) {
+        if (!noteRepository.existsById(id)) {
+            return false;
+        }
         noteRepository.deleteById(id);
+        return true;
     }
 }
