@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -28,8 +29,10 @@ public class NoteController {
     private final NoteService noteService;
 
     @GetMapping
-    public List<Note> list(@AuthenticationPrincipal UserPrincipal user) {
-        return noteService.findAllForUser(user.id());
+    public List<Note> list(
+            @AuthenticationPrincipal UserPrincipal user,
+            @RequestParam(name = "tag", required = false) String tag) {
+        return noteService.findAllForUser(user.id(), tag);
     }
 
     @PostMapping
