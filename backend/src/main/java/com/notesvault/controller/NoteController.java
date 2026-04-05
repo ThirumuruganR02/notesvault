@@ -31,8 +31,9 @@ public class NoteController {
     @GetMapping
     public List<Note> list(
             @AuthenticationPrincipal UserPrincipal user,
-            @RequestParam(name = "tag", required = false) String tag) {
-        return noteService.findAllForUser(user.id(), tag);
+            @RequestParam(name = "tag", required = false) String tag,
+            @RequestParam(name = "search", required = false) String search) {
+        return noteService.findAllForUser(user.id(), tag, search);
     }
 
     @PostMapping

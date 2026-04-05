@@ -27,16 +27,29 @@ public class NoteService {
     private final UserRepository userRepository;
     private final TagRepository tagRepository;
 
-    public List<Note> findAllForUser(Long userId, String tagFilter) {
+    public List<Note> findAllForUser(Long userId, String tagFilter, String searchQuery) {
         User owner = resolveOwner(userId);
-        if (tagFilter == null || tagFilter.isBlank()) {
-            return noteRepository.findAllByOwnerOrderByUpdatedAtDesc(owner);
+        Optional<String> searchPattern = buildSearchPattern(searchQuery);
+        boolean hasTag = hasTagFilter(tagFilter);
+        String normalizedTag = hasTag ? normalizeTag(tagFilter) : "";
+
+        if (hasTag && normalizedTag.isEmpty()) {
+            hasTag = false;
         }
-        String normalized = normalizeTag(tagFilter);
-        if (normalized.isEmpty()) {
-            return noteRepository.findAllByOwnerOrderByUpdatedAtDesc(owner);
+
+        if (searchPattern.isEmpty()) {
+            if (!hasTag) {
+                return noteRepository.findAllByOwnerOrderByUpdatedAtDesc(owner);
+            }
+            return noteRepository.findAllByOwnerAndTagNameOrderByUpdatedAtDesc(owner, normalizedTag);
         }
-        return noteRepository.findAllByOwnerAndTagNameOrderByUpdatedAtDesc(owner, normalized);
+
+        String pattern = searchPattern.get();
+        if (!hasTag) {
+            return noteRepository.findAllByOwnerAndTextSearchOrderByUpdatedAtDesc(owner, pattern);
+        }
+        return noteRepository.findAllByOwnerTagAndTextSearchOrderByUpdatedAtDesc(
+                owner, normalizedTag, pattern);
     }
 
     @Transactional
@@ -93,6 +106,24 @@ public class NoteService {
 
     private static String normalizeTag(String value) {
         return value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static boolean hasTagFilter(String tagFilter) {
+        return tagFilter != null && !tagFilter.isBlank();
+    }
+
+    /**
+     * Case-insensitive substring match; strips LIKE wildcards from input so {@code %} / {@code _} are literal-safe.
+     */
+    private static Optional<String> buildSearchPattern(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return Optional.empty();
+        }
+        String stripped = raw.trim().replace("%", "").replace("_", "").replace("\\", "");
+        if (stripped.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of("%" + stripped.toLowerCase(Locale.ROOT) + "%");
     }
 
     private User resolveOwner(Long userId) {
