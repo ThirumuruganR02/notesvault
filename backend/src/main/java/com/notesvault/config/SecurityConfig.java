@@ -36,6 +36,8 @@ public class SecurityConfig {
                                         .permitAll()
                                         .requestMatchers("/error")
                                         .permitAll()
+                                        .requestMatchers(HttpMethod.GET, "/")
+                                        .permitAll()
                                         .requestMatchers(HttpMethod.GET, ApiPaths.NOTES)
                                         .authenticated()
                                         .requestMatchers(HttpMethod.POST, ApiPaths.NOTES)
