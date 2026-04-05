@@ -1,6 +1,8 @@
 package com.notesvault.config;
 
+import com.notesvault.common.ApiPaths;
 import com.notesvault.security.JwtAuthenticationFilter;
+import com.notesvault.security.JsonUnauthorizedEntryPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,31 +20,33 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final JsonUnauthorizedEntryPoint jsonUnauthorizedEntryPoint;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(AbstractHttpConfigurer::disable)
+        http.csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(
-                                "/v3/api-docs/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html")
-                                .permitAll()
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/error").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/notes").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/notes").authenticated()
-                        .requestMatchers(HttpMethod.PUT, "/notes/*").authenticated()
-                        .requestMatchers(HttpMethod.DELETE, "/notes/*").authenticated()
-                        .anyRequest().denyAll())
-                .exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, authException) -> {
-                    response.setStatus(401);
-                    response.setContentType("application/json");
-                    response.getWriter().write("{\"error\":\"Unauthorized\"}");
-                }))
+                .authorizeHttpRequests(
+                        auth ->
+                                auth.requestMatchers(HttpMethod.OPTIONS, "/**")
+                                        .permitAll()
+                                        .requestMatchers(ApiPaths.DOC_PATHS)
+                                        .permitAll()
+                                        .requestMatchers(ApiPaths.AUTH_ANT)
+                                        .permitAll()
+                                        .requestMatchers("/error")
+                                        .permitAll()
+                                        .requestMatchers(HttpMethod.GET, ApiPaths.NOTES)
+                                        .authenticated()
+                                        .requestMatchers(HttpMethod.POST, ApiPaths.NOTES)
+                                        .authenticated()
+                                        .requestMatchers(HttpMethod.PUT, ApiPaths.NOTES + "/*")
+                                        .authenticated()
+                                        .requestMatchers(HttpMethod.DELETE, ApiPaths.NOTES + "/*")
+                                        .authenticated()
+                                        .anyRequest()
+                                        .denyAll())
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(jsonUnauthorizedEntryPoint))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

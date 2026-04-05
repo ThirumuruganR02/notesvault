@@ -1,5 +1,6 @@
 package com.notesvault.security;
 
+import com.notesvault.common.ApiPaths;
 import com.notesvault.util.JwtUtil;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -26,8 +27,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getServletPath();
-        return path.startsWith("/api/auth/");
+        return ApiPaths.isUnderAuth(request.getServletPath());
     }
 
     @Override
@@ -66,9 +66,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (JwtException | IllegalArgumentException e) {
             SecurityContextHolder.clearContext();
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.setContentType("application/json");
-            response.getWriter().write("{\"error\":\"Invalid or expired token\"}");
+            JsonErrorResponseWriter.write(
+                    response, HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired token");
             return;
         }
 

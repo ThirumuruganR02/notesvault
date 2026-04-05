@@ -1,5 +1,6 @@
 package com.notesvault.controller;
 
+import com.notesvault.common.ApiPaths;
 import com.notesvault.config.OpenApiConfig;
 import com.notesvault.dto.NoteRequest;
 import com.notesvault.model.Note;
@@ -28,7 +29,7 @@ import java.util.List;
 @Tag(name = "Notes")
 @SecurityRequirement(name = OpenApiConfig.BEARER_JWT)
 @RestController
-@RequestMapping("/notes")
+@RequestMapping(ApiPaths.NOTES)
 @RequiredArgsConstructor
 public class NoteController {
 

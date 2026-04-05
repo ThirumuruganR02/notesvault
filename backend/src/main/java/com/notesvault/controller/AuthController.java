@@ -1,5 +1,6 @@
 package com.notesvault.controller;
 
+import com.notesvault.common.ApiPaths;
 import com.notesvault.dto.AuthResponse;
 import com.notesvault.dto.LoginRequest;
 import com.notesvault.dto.RegisterRequest;
@@ -16,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Authentication")
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping(ApiPaths.AUTH)
 @RequiredArgsConstructor
 public class AuthController {
 
