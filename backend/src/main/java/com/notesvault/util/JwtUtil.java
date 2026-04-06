@@ -74,7 +74,7 @@ public class JwtUtil {
         try {
             parseClaims(token);
             return true;
-        } catch (ExpiredJwtException | JwtException | IllegalArgumentException e) {
+        } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
     }
